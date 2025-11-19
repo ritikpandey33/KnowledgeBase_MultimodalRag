@@ -21,6 +21,7 @@ app.include_router(documents.router)
 app.include_router(query.router)
 
 # Initialize the LLM provider on startup
+# This is done at the module level so it runs once when the app starts
 try:
     llm_provider = get_llm_provider()
     print(f"Successfully initialized LLM provider: {llm_provider.__class__.__name__}")
