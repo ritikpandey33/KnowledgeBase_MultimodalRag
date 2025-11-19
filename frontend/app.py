@@ -3,9 +3,10 @@
 import streamlit as st
 import requests
 import time
+import os
 
 # --- Configuration ---
-BACKEND_URL = "http://127.0.0.1:8000"
+BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
 
 # --- UI Setup ---
 st.set_page_config(page_title="Smart Knowledge Assistant", page_icon="🧠", layout="wide")
