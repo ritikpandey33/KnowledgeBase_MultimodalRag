@@ -11,7 +11,7 @@ youtube-transcript-api
 trafilatura
 
 # Vector DB & Embeddings
-sentence-transformers
+# sentence-transformers (Removed: Switched to Gemini API)
 qdrant-client
 
 # Database
