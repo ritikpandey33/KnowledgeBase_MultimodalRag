@@ -18,6 +18,7 @@ from app.services.bm25 import get_bm25_service
 
 # --- Qdrant Configuration ---
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
 QDRANT_COLLECTION_NAME = "knowledge_base"
 
 
@@ -36,7 +37,7 @@ class IngestionService:
             length_function=len,
             is_separator_regex=False,
         )
-        self.qdrant_client = QdrantClient(url=QDRANT_URL)
+        self.qdrant_client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
         self._ensure_qdrant_collection_exists()
 
     def _ensure_qdrant_collection_exists(self):

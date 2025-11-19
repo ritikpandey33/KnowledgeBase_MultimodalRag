@@ -10,6 +10,7 @@ from app.services.llm import get_llm_provider, LLMProvider
 from app.services.bm25 import get_bm25_service, BM25Service
 
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
 QDRANT_COLLECTION_NAME = "knowledge_base"
 
 class RetrievalService:
@@ -48,7 +49,7 @@ Question:
         self.embedding_model = embedding_model
         self.llm_provider = llm_provider
         self.bm25_service = bm25_service
-        self.qdrant_client = QdrantClient(url=QDRANT_URL)
+        self.qdrant_client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
 
     def _reciprocal_rank_fusion(self, vector_results: List[models.ScoredPoint], keyword_results: List[Dict], k: int = 60) -> List[Dict]:
         """
