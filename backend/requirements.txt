@@ -9,7 +9,6 @@ langchain-text-splitters
 pypdf
 youtube-transcript-api
 trafilatura
-playwright
 
 # Vector DB & Embeddings
 sentence-transformers

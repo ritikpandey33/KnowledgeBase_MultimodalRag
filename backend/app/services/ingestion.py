@@ -10,7 +10,6 @@ from fastapi import Depends
 from qdrant_client import QdrantClient, models as qdrant_models
 from youtube_transcript_api import YouTubeTranscriptApi
 import trafilatura
-from playwright.sync_api import sync_playwright
 
 from app.db.models import Document, DocumentStatus, SourceType
 from app.db.database import get_db, SessionLocal
@@ -71,53 +70,29 @@ class IngestionService:
 
     def _extract_text_from_web(self, url: str) -> str:
         """
-        Extracts the main text content from a web page by first rendering it
-        with a headless browser (Playwright) and then extracting content
-        with trafilatura.
+        Extracts the main text content from a web page using trafilatura.
+        This replaces the complex Playwright scraper.
         """
-        print(f"Scraping text from JS-heavy page: {url}")
-        html_content = ""
+        print(f"Scraping text from web page: {url}")
         try:
-            with sync_playwright() as p:
-                browser = p.chromium.launch(headless=True)
-                page = browser.new_page()
-                page.goto(url, wait_until='networkidle', timeout=15000)
-                html_content = page.content()
-                browser.close()
-        except Exception as e:
-            print(f"Playwright failed to render page {url}: {e}")
-            return self._extract_text_from_web_fallback(url)
-
-        if not html_content:
-            return ""
-
-        print("Page rendered successfully. Extracting content with trafilatura...")
-        try:
+            downloaded = trafilatura.fetch_url(url)
+            if not downloaded:
+                raise ValueError("Failed to fetch URL content.")
+            
             text = trafilatura.extract(
-                html_content,
+                downloaded,
                 include_tables=True,
                 include_comments=False,
                 output_format='markdown'
             )
-            if not text:
-                raise ValueError("Trafilatura failed to extract content from rendered HTML.")
             
+            if not text:
+                raise ValueError("Failed to extract text from fetched content.")
+                
             print(f"Extracted {len(text)} characters from web page.")
             return text
         except Exception as e:
-            print(f"Error extracting content with trafilatura from {url}: {e}")
-            return ""
-
-    def _extract_text_from_web_fallback(self, url: str) -> str:
-        """A simple fallback scraper that doesn't use a headless browser."""
-        print(f"Falling back to simple scraper for: {url}")
-        try:
-            downloaded = trafilatura.fetch_url(url)
-            if not downloaded: return ""
-            text = trafilatura.extract(downloaded, include_tables=True, include_comments=False, output_format='markdown')
-            return text or ""
-        except Exception as e:
-            print(f"Fallback scraper failed for {url}: {e}")
+            print(f"Error scraping {url}: {e}")
             return ""
 
     def process_document(self, document_id: str):

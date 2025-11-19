@@ -57,3 +57,9 @@ Thumbs.db
 # Local docs
 plan.md
 note.txt
+
+# Binary Indexes
+*.pkl
+
+# User Uploads
+backend/temp_uploads/
