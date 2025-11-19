@@ -53,3 +53,7 @@ __pycache__/
 # OS specific
 .DS_Store
 Thumbs.db
+
+# Local docs
+plan.md
+note.txt

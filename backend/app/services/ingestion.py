@@ -15,6 +15,7 @@ from playwright.sync_api import sync_playwright
 from app.db.models import Document, DocumentStatus, SourceType
 from app.db.database import get_db, SessionLocal
 from app.utils.embeddings import get_embedding_model, EmbeddingModel
+from app.services.bm25 import get_bm25_service
 
 # --- Qdrant Configuration ---
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
@@ -139,15 +140,23 @@ class IngestionService:
             chunks = self.text_splitter.split_text(text)
             embeddings = self.embedding_model.encode_documents(chunks)
 
+            # Prepare payloads for Qdrant and metadata for BM25
+            payloads = [{"text": chunk, "document_id": str(document.id), "source_filename": document.filename} for chunk in chunks]
+
             self.qdrant_client.upsert(
                 collection_name=QDRANT_COLLECTION_NAME,
                 points=qdrant_models.Batch(
                     ids=[str(uuid.uuid4()) for _ in chunks],
                     vectors=embeddings,
-                    payloads=[{"text": chunk, "document_id": str(document.id), "source_filename": document.filename} for chunk in chunks]
+                    payloads=payloads
                 ),
                 wait=True
             )
+
+            # Update BM25 Index
+            print("Updating BM25 index...")
+            bm25_service = get_bm25_service()
+            bm25_service.add_documents(chunks, payloads)
             
             document.chunk_count = len(chunks)
             document.status = DocumentStatus.completed

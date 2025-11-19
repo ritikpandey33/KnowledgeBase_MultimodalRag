@@ -19,3 +19,4 @@ qdrant-client
 sqlalchemy
 psycopg2-binary
 alembic
+rank-bm25

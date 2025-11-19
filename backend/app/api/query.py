@@ -20,12 +20,15 @@ class QueryResponse(BaseModel):
     text: str
     sources: List[Dict]
 
+from app.services.bm25 import get_bm25_service, BM25Service
+
 def get_retrieval_service(
     embedding_model: EmbeddingModel = Depends(get_embedding_model),
     llm_provider: LLMProvider = Depends(get_llm_provider),
+    bm25_service: BM25Service = Depends(get_bm25_service),
 ) -> RetrievalService:
     """Dependency to create a RetrievalService instance."""
-    return RetrievalService(embedding_model, llm_provider)
+    return RetrievalService(embedding_model, llm_provider, bm25_service)
 
 def _build_prompt(query: str, context_chunks: List[Dict]) -> str:
     """Builds a detailed prompt for the LLM with context and instructions."""
