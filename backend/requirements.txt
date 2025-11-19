@@ -1,0 +1,21 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+openai
+google-generativeai
+python-multipart
+langchain
+langchain-text-splitters
+pypdf
+youtube-transcript-api
+trafilatura
+playwright
+
+# Vector DB & Embeddings
+sentence-transformers
+qdrant-client
+
+# Database
+sqlalchemy
+psycopg2-binary
+alembic
