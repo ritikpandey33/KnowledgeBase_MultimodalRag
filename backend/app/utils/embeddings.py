@@ -1,51 +1,63 @@
 # backend/app/utils/embeddings.py
 
-from sentence_transformers import SentenceTransformer
+import os
+import google.generativeai as genai
 from typing import List
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class EmbeddingModel:
     """
-    A wrapper class for the SentenceTransformer model to ensure it is loaded
-    only once and can be easily used throughout the application.
+    A wrapper class for the Gemini Embedding API.
+    This replaces the local SentenceTransformer to save RAM on the server.
     """
-    _model = None
-
-    @classmethod
-    def get_model(cls):
-        """
-        Singleton pattern to load the model only once.
-        """
-        if cls._model is None:
-            # This is the model specified in the plan. It's small and efficient.
-            model_name = 'all-MiniLM-L6-v2'
-            print(f"Loading sentence transformer model: {model_name}...")
-            cls._model = SentenceTransformer(model_name)
-            print("Model loaded successfully.")
-        return cls._model
+    def __init__(self):
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY is not set in environment variables.")
+        genai.configure(api_key=api_key)
+        self.model_name = "models/text-embedding-004"
 
     def encode_documents(self, texts: List[str]) -> List[List[float]]:
         """
-        Encodes a list of text documents into vector embeddings.
+        Encodes a list of text documents into vector embeddings using Gemini API.
         """
-        model = self.get_model()
-        print(f"Creating embeddings for {len(texts)} documents...")
-        embeddings = model.encode(texts, convert_to_tensor=False)
-        print("Embeddings created.")
-        return embeddings.tolist()
+        print(f"Generating embeddings for {len(texts)} chunks using Gemini API...")
+        
+        # Gemini API accepts a list of strings directly
+        result = genai.embed_content(
+            model=self.model_name,
+            content=texts,
+            task_type="retrieval_document",
+            title="Document Chunk" # Optional, helps with quality
+        )
+        
+        # The result is a dictionary with 'embedding' key
+        return result['embedding']
 
     def encode_query(self, text: str) -> List[float]:
         """
-        Encodes a single query string into a vector embedding.
+        Encodes a single query string into a vector embedding using Gemini API.
         """
-        model = self.get_model()
-        embedding = model.encode(text, convert_to_tensor=False)
-        return embedding.tolist()
+        result = genai.embed_content(
+            model=self.model_name,
+            content=text,
+            task_type="retrieval_query"
+        )
+        return result['embedding']
 
 # Instantiate a single instance to be used as a dependency
-embedding_model = EmbeddingModel()
+try:
+    embedding_model = EmbeddingModel()
+except ValueError as e:
+    print(f"Warning: {e}. Embeddings will fail until GEMINI_API_KEY is set.")
+    embedding_model = None
 
 def get_embedding_model():
     """
     Dependency function to get the embedding model instance.
     """
+    if embedding_model is None:
+         raise ValueError("Embedding model failed to initialize. Check GEMINI_API_KEY.")
     return embedding_model

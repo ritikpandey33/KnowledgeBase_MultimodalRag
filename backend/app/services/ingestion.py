@@ -41,11 +41,16 @@ class IngestionService:
 
     def _ensure_qdrant_collection_exists(self):
         try:
-            self.qdrant_client.get_collection(collection_name=QDRANT_COLLECTION_NAME)
+            collection_info = self.qdrant_client.get_collection(collection_name=QDRANT_COLLECTION_NAME)
+            # Check if vector size matches Gemini's 768
+            if collection_info.config.params.vectors.size != 768:
+                print(f"Collection '{QDRANT_COLLECTION_NAME}' has incorrect vector size. Recreating...")
+                self.qdrant_client.delete_collection(collection_name=QDRANT_COLLECTION_NAME)
+                raise Exception("Collection deleted to force recreation.")
         except Exception:
             self.qdrant_client.create_collection(
                 collection_name=QDRANT_COLLECTION_NAME,
-                vectors_config=qdrant_models.VectorParams(size=384, distance=qdrant_models.Distance.COSINE),
+                vectors_config=qdrant_models.VectorParams(size=768, distance=qdrant_models.Distance.COSINE),
             )
 
     def _extract_text_from_pdf(self, file_path: str) -> str:
