@@ -71,6 +71,50 @@ with st.sidebar:
         else:
             st.warning("Please enter a web page URL.")
 
+    st.divider()
+    
+    # --- Document Management Section ---
+    st.header("Manage Documents")
+    
+    # Function to fetch documents
+    def fetch_documents():
+        try:
+            response = requests.get(f"{BACKEND_URL}/api/documents")
+            if response.status_code == 200:
+                return response.json()
+            else:
+                st.error("Failed to fetch documents.")
+                return []
+        except Exception as e:
+            st.error(f"Connection error: {e}")
+            return []
+
+    # Function to delete document
+    def delete_document(doc_id, filename):
+        try:
+            response = requests.delete(f"{BACKEND_URL}/api/documents/{doc_id}")
+            if response.status_code == 204:
+                st.success(f"Deleted '{filename}'")
+                time.sleep(1) # Give time for success message
+                st.rerun()
+            else:
+                st.error(f"Failed to delete: {response.text}")
+        except Exception as e:
+            st.error(f"Error: {e}")
+
+    # Display Documents
+    documents = fetch_documents()
+    if documents:
+        for doc in documents:
+            with st.expander(f"{doc['filename']} ({doc['status']})"):
+                st.caption(f"Type: {doc['source_type']}")
+                st.caption(f"Uploaded: {doc['upload_date'][:10]}")
+                st.caption(f"Chunks: {doc['chunk_count']}")
+                if st.button("Delete", key=doc['id']):
+                    delete_document(doc['id'], doc['filename'])
+    else:
+        st.info("No documents found.")
+
 # --- Main Chat Interface ---
 st.header("💬 Chat with Your Documents")
 

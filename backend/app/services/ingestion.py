@@ -143,13 +143,57 @@ class IngestionService:
             self.db.commit()
             print(f"An error occurred during document processing for {document.id}: {e}")
 
+    def delete_document(self, document_id: str):
+        """
+        Deletes a document's vectors from Qdrant and removes it from the BM25 index.
+        """
+        print(f"Deleting document {document_id} from vector database...")
+        
+        # 1. Delete from Qdrant using Filter
+        try:
+            self.qdrant_client.delete(
+                collection_name=QDRANT_COLLECTION_NAME,
+                points_selector=qdrant_models.FilterSelector(
+                    filter=qdrant_models.Filter(
+                        must=[
+                            qdrant_models.FieldCondition(
+                                key="document_id",
+                                match=qdrant_models.MatchValue(value=document_id),
+                            )
+                        ]
+                    )
+                ),
+            )
+            print("Deleted vectors from Qdrant.")
+        except Exception as e:
+            print(f"Error deleting from Qdrant: {e}")
 
-# --- Standalone Background Task ---
+        # 2. Delete from BM25
+        print(f"Deleting document {document_id} from BM25 index...")
+        try:
+            bm25_service = get_bm25_service()
+            bm25_service.delete_documents(document_id)
+        except Exception as e:
+            print(f"Error deleting from BM25: {e}")
+
+
+# --- Standalone Background Tasks ---
 def process_document_task(document_id: str):
     db = SessionLocal()
     try:
         embedding_model = get_embedding_model()
         service = IngestionService(db, embedding_model)
         service.process_document(document_id)
+    finally:
+        db.close()
+
+def delete_document_task(document_id: str):
+    db = SessionLocal()
+    try:
+        # We don't strictly need the embedding model for deletion, but the service requires it in init
+        # Ideally we'd refactor IngestionService to not require it for deletion, but this works for now.
+        embedding_model = get_embedding_model()
+        service = IngestionService(db, embedding_model)
+        service.delete_document(document_id)
     finally:
         db.close()

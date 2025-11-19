@@ -58,6 +58,31 @@ class BM25Service:
         
         self.save_index()
 
+    def delete_documents(self, document_id: str):
+        """
+        Removes all chunks associated with a specific document_id and rebuilds the index.
+        """
+        initial_count = len(self.documents)
+        # Filter out documents matching the ID
+        self.documents = [
+            doc for doc in self.documents 
+            if doc["metadata"].get("document_id") != document_id
+        ]
+        
+        if len(self.documents) < initial_count:
+            print(f"Removed {initial_count - len(self.documents)} chunks from BM25 index for doc {document_id}.")
+            
+            # Rebuild index
+            if self.documents:
+                tokenized_corpus = [self._tokenize(doc["text"]) for doc in self.documents]
+                self.bm25 = BM25Okapi(tokenized_corpus)
+            else:
+                self.bm25 = None
+                
+            self.save_index()
+        else:
+            print(f"No chunks found in BM25 index for doc {document_id}.")
+
     def search(self, query: str, k: int = 5) -> List[Dict]:
         """
         Performs keyword search using BM25.
