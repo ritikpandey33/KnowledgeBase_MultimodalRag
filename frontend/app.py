@@ -96,23 +96,42 @@ with st.sidebar:
             response = requests.delete(f"{BACKEND_URL}/api/documents/{doc_id}")
             if response.status_code == 204:
                 st.success(f"Deleted '{filename}'")
-                time.sleep(1) # Give time for success message
-                st.rerun()
+                return True
             else:
-                st.error(f"Failed to delete: {response.text}")
+                st.error(f"Failed to delete '{filename}': {response.text}")
+                return False
         except Exception as e:
             st.error(f"Error: {e}")
+            return False
 
     # Display Documents
     documents = fetch_documents()
     if documents:
+        if st.button("Delete All Documents", type="primary"):
+            progress_bar = st.progress(0)
+            deleted_count = 0
+            for i, doc in enumerate(documents):
+                if delete_document(doc['id'], doc['filename']):
+                    deleted_count += 1
+                progress_bar.progress((i + 1) / len(documents))
+            
+            if deleted_count == len(documents):
+                st.success("All documents deleted successfully.")
+            else:
+                st.warning(f"Deleted {deleted_count} out of {len(documents)} documents.")
+            
+            time.sleep(1)
+            st.rerun()
+
         for doc in documents:
             with st.expander(f"{doc['filename']} ({doc['status']})"):
                 st.caption(f"Type: {doc['source_type']}")
                 st.caption(f"Uploaded: {doc['upload_date'][:10]}")
                 st.caption(f"Chunks: {doc['chunk_count']}")
                 if st.button("Delete", key=doc['id']):
-                    delete_document(doc['id'], doc['filename'])
+                    if delete_document(doc['id'], doc['filename']):
+                        time.sleep(1)
+                        st.rerun()
     else:
         st.info("No documents found.")
 
